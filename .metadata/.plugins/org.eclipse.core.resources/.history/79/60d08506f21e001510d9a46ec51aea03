@@ -1,0 +1,7 @@
+eclipse.preferences.version=1
+encoding//Device/baseData.py=utf8
+encoding//Device/infrared.py=utf8
+encoding//Device/voc.py=utf8
+encoding//RassberryPi/SmartServer.py=utf-8
+encoding//RassberryPi/com_session.py=utf-8
+encoding//RassberryPi/deviceSet.py=utf-8

@@ -1,0 +1,355 @@
+#coding=utf-8
+#!/usr/bin/env python
+'''
+Created on 2015年8月19日
+
+@author: sanhe
+'''
+import json
+import struct
+import torndb
+
+protocolhandlers = {}
+
+def handleDeviceTypes(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        from Device.device import device_Dict
+        member = []
+        for dev_type,description in device_Dict.items():
+            item = {}
+            item['dev_type'] = dev_type
+            item['description'] = description
+            member.append(item)
+        body['member'] = member
+        body['status_code'] = 2
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+        
+def handleSessionTypes(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        member = []
+        item = {}
+        item['session_type'] = 1
+        item['description'] = 'usb转485'
+        member.append(item)
+        body['member'] = member
+        body['status_code'] = 2
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+
+def handleUnits(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        member = []
+        item = {}
+        item['unit_name'] = u'单元服务器1'
+        item['unit_ip'] = '172.16.1.13'
+        member.append(item)
+        body['member'] = member
+        body['status_code'] = 2
+        print body
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+        
+def handleNodes(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        member = []
+        item = {}
+        item['node_name'] = '节点服务器1'
+        item['node_ip'] = '172.16.1.13'
+        member.append(item)
+        body['member'] = member
+        body['status_code'] = 2
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+        
+def handleSessions(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        sqlConnection = torndb.Connection("127.0.0.1:3306", "smarthome", user = "root", password = "123456")
+        sql = 'select * from sessions'
+        mset =  sqlConnection.query(sql)
+        sqlConnection.close()
+        body['member'] = mset
+        body['status_code'] = 2
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+        
+def handleDevices(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        sqlConnection = torndb.Connection("127.0.0.1:3306", "smarthome", user = "root", password = "123456")
+        sql = 'select dev_name,dev_type,dev_id from devices Where session_name = %s'
+        mset =  sqlConnection.query(sql, body['session_name'])
+#         print mset
+        sqlConnection.close()
+        body['member'] = mset
+        body['status_code'] = 2
+        print body
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+        
+def handleDevArea(head, body, client):
+    head = list(head)
+    sqlConnection = torndb.Connection("127.0.0.1:3306", "smarthome", user = "root", password = "123456")
+    if body['status_code'] == 1:
+        sql = 'select area from areas Where dev_name = %s'
+        mset =  sqlConnection.query(sql, body['dev_name'])
+        if len(mset) != 0:
+            body['area_name'] = mset[0]['area']
+        body['status_code'] = 2
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+    elif body['status_code'] == 3:
+        pass
+    elif body['status_code'] == 6:
+        pass
+    sqlConnection.close()
+    
+def handleSessionState(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        body['session_state'] = 0
+        from SmartServer import SmartServer
+        if body['session_name'] in SmartServer().dataSession_map:
+            if SmartServer().dataSession_map[body['session_name']].State() :
+                body['session_state'] = 1
+        body['status_code'] = 2
+        print "handleSessionState : " , body
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+    
+def handleDevDatas(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        from SmartServer import SmartServer
+        if SmartServer().putTask(body['session_name'], 
+                                 {'MsgType' : 1, 'data' : {'client_id' : id(client),'head' : head, 'body' : body}}) is False:
+            body['session_state'] = 0
+            body['status_code'] = 2
+            encodedjson = json.dumps(body)
+            head[3] = len(encodedjson)
+            data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+            client.SendData(data)
+    
+def handleStartUpload(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        client.Start_tell()
+        body['status_code'] = 2
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+    
+def handleDevTypeBaseDatas(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        table_name = body['dev_type'] + '_conf'
+        sqlConnection = torndb.Connection("127.0.0.1:3306", "smarthome", user = "root", password = "123456")
+        sql = 'Select conf_name, description from ' + table_name
+        mset = []
+        try :
+            mset =  sqlConnection.query(sql, body['dev_name'])
+        except Exception as e:
+            print "handleDevTypeBaseDatas got Error : " , e
+        if len(mset) > 0 :
+            body['member'] = mset
+        body['status_code'] = 2
+        encodedjson = json.dumps(body)
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+        sqlConnection.close()
+
+def handleDataProperties(head, body, client):
+    head = list(head)
+    if body['status_code'] == 1:
+        pass
+    
+def handleControlSession(head, body, client):
+    head = list(head)
+    print "handleControlSession : ", body
+    if body['status_code'] == 1:
+        from SmartServer import SmartServer
+        if body['session_state'] == 0:
+            SmartServer().putTask(body['session_name'], {'MsgType' : 3, 'data' : {'state' : body['session_state']}})
+        elif body['session_state'] == 1:
+            if SmartServer().startOldSession(body['session_name']) is False :
+                SmartServer().channelStart(body['session_name'])
+        elif body['session_state'] == 2 :
+            SmartServer().channelStart(body['session_name'])
+        body['status_code'] = 2
+#         print "handleControlSession : " , body
+        encodedjson = json.dumps(body)
+        print "handleControlSession : " , body , "\n", encodedjson
+        head[3] = len(encodedjson)
+        data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+        client.SendData(data)
+        
+def handleVideoServers(head, body, client):
+    from SmartServer import SmartServer
+    from VideoServer import VideoServer
+    head = list(head)
+    if body['status_code'] == 1:
+        if body['member']:
+            print "member is not None :" ,body
+            for item in body['member']:
+                if item['server_ip'] is not None:
+                    if item['server_ip'] in SmartServer().videoservers_map:
+                        name = SmartServer().videoservers_map[item['server_ip']].getName()
+                        body['server_name'] = name
+                    else:
+                        SmartServer().addVideoServer(item['server_ip'],VideoServer(item['server_ip'],1))
+                        client.setType('videoserver')
+        else :
+            print "member is None :" ,body
+            member = []
+            for server_ip , videoserver in SmartServer().videoservers_map:
+                item ={}
+                item['server_ip'] = server_ip
+                item['server_name'] = videoserver.getName()
+                if videoserver.getState():
+                    item['server_state'] = 1
+                else :
+                    item['server_state'] = 0
+                member.append(item)
+            if len(member) == 0:
+                body['member'] = None
+        body['status_code'] = 2
+        body['local_name'] = u'西山游泳馆'
+    elif body['status_code'] == 3:
+        body['status_code'] = 4
+        item = body['member'][0]
+        if item['server_ip'] not in SmartServer().videoservers_map:
+            addFlag = True
+            for server in SmartServer().videoservers_map.values():
+                if server.getName() == item['server_name']:
+                    body['status_code'] = 5
+                    addFlag = False
+            if addFlag:
+                SmartServer().addVideoServer(item['server_ip'],VideoServer(item['server_ip'],0,item['server_name']))
+        else :
+            if SmartServer().videoservers_map['server_ip'].getName() == item['server_name']:
+                body['status_code'] = 5
+            else :
+                SmartServer().videoservers_map['server_ip'].setName(item['server_name'])
+        body['local_name'] = u'西山游泳馆'
+    elif body['status_code'] == 6:
+        item = body['member'][0]
+        if SmartServer().delVideoServer(item['server_ip']):
+            body['status_code'] = 7
+        else:
+            body['status_code'] = 8
+    print "handleVideoServers : ", body
+    encodedjson = json.dumps(body)
+    print encodedjson
+    head[3] = len(encodedjson)
+    data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+    client.SendData(data)
+    
+def handleVideoIPCS(head, body, client):
+    head = list(head)
+    from SmartServer import SmartServer
+    if body['status_code'] == 1:
+        member = []
+        if body['server_name'] in SmartServer().videoNameIP_Dict:
+            server_ip = SmartServer().videoNameIP_Dict[body['server_name']]
+            videoserver = SmartServer().videoservers_map[server_ip]
+            for name , ipc in videoserver.getIPCs().items():
+                item = ipc.GetIPCProperties()
+                item['name'] = name
+                member.append(item)
+            if len(member) == 0:
+                member = None
+        body['member'] = member
+        body['status_code'] = 2
+    elif body['status_code'] == 3:
+        body['status_code'] = 4
+        if body['server_name'] in SmartServer().videoNameIP_Dict:
+            server_ip = SmartServer().videoNameIP_Dict[body['server_name']]
+            videoserver = SmartServer().videoservers_map[server_ip]
+            item = body['member'][0]
+            addFlag = True
+            if item['name'] in videoserver.getIPCs():
+                body['status_code'] = 5
+                addFlag = False
+            else:
+                for ipc in videoserver.getIPCs().values():
+                    if item['ip'] == ipc.getProperty['ip']:
+                        body['status_code'] = 5
+                        addFlag = False
+            if addFlag:
+                from VideoServer import VideoIPC
+                SmartServer().addVideoIPC(server_ip, item['name'], 
+                                          VideoIPC(item['ip'],item['url'],item['fps'],item['resolution'],item['streamsize']))
+        body['status_code'] = 5
+    elif body['status_code'] == 6:
+        if body['server_name'] in SmartServer().videoNameIP_Dict:
+            server_ip = SmartServer().videoNameIP_Dict[body['server_name']]
+            videoserver = SmartServer().videoservers_map[server_ip]
+            item = body['member'][0]
+            if item['name'] in videoserver.getIPCs():
+                if item['name'] = videoserver.getIPCs()
+    print "handleVideoIPCS : ", body
+    encodedjson = json.dumps(body)
+    print encodedjson
+    head[3] = len(encodedjson)
+    data = struct.pack('!4i{}s'.format(head[3]),head[0],head[1],head[2],head[3],encodedjson)
+    client.SendData(data)
+    
+    
+def handleVideoRecords(head, body, client):
+    head = list(head)
+        
+def handleVideoServiceState(head, body, client):
+    head = list(head)
+    
+def handleStartorStopService(head, body, client):
+    head = list(head)
+    
+def handleIPCState(head, body, client):
+    head = list(head)
+    
+protocolhandlers[1] = handleDeviceTypes
+protocolhandlers[2] = handleSessionTypes
+protocolhandlers[3] = handleUnits
+protocolhandlers[4] = handleNodes
+protocolhandlers[5] = handleSessions
+protocolhandlers[6] = handleDevices
+protocolhandlers[7] = handleDevArea
+protocolhandlers[8] = handleSessionState
+protocolhandlers[9] = handleDevDatas
+protocolhandlers[10] = handleStartUpload
+protocolhandlers[11] = handleDevTypeBaseDatas
+protocolhandlers[12] = handleDataProperties
+protocolhandlers[13] = handleControlSession
+protocolhandlers[101] = handleVideoServers
+protocolhandlers[102] = handleVideoIPCS
+protocolhandlers[103] = handleVideoRecords
+protocolhandlers[104] = handleVideoServiceState
+protocolhandlers[105] = handleStartorStopService
+protocolhandlers[106] = handleIPCState
+        
+# str = '''{"command":"getOrders","arguments":{"pendingOnly":"true","someIntValue":"15"}}'''
+# body = json.loads(str)
+# print body

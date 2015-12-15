@@ -1,0 +1,33 @@
+#coding=utf-8
+#!/usr/bin/env python
+'''
+Created on 2015年12月14日
+
+@author: sanhe
+'''
+from Device import *
+import torndb
+
+device_dict = {
+               'infrared' : infrared.infrared,
+               'co2' : co2.co2,
+               'stc_1' : mokuai.stc_1,
+               'plc' : plc.plc,
+               'sansu' : sansu.sansu,
+               'triplecng' : triplecng.triplecng,
+               'voc' : voc.voc,
+               'wenkong' : wenkong.wenkong,
+               'ZMA194E' : ZMA194E.ZMA194E,
+               }
+
+ename_constraintMap = {}
+
+class deviceSet():
+    def __init__(self, session_name, db):
+        self._session_name = session_name
+        self._id_devmap = {}
+        self._cycleCmds = {}
+        self._initData(db)
+        
+    def _initData(self,db):
+        self._sqlConnection = torndb.Connection(db._addr, "smarthome", user = "root", password = "123456")

@@ -1,0 +1,51 @@
+#coding=utf-8
+#!/usr/bin/env python
+'''
+Created on 2015年8月7日
+
+@author: sanhe
+'''
+
+def handleData(client):
+    buf = client.recv(16)
+    print buf.strip()
+    
+    
+def hanldeSessionState(data):
+    print "hanldeSessionState : ", data
+    from SmartServer import SmartServer
+    SmartServer()
+    
+def handleDataChanged(data):
+    print "handleDataChanged :" ,data
+    from SmartServer import SmartServer
+    SmartServer()
+    
+def handleDeviceData(data):
+    if data['data']:
+        for key, value in data['data'].getDataDict().items():
+            print key, value
+
+def getDeviceData(datasession, data):
+    if datasession.getDevice(data['dev_name']) :
+        data['data'] = datasession.getDevice(data['dev_name'])
+    else:
+        data['data'] = None
+    for key,value in data['data'].getDataDict().items():
+            print key, value
+    
+def sendDeviceCmd(datasession, data):
+    print "sendDeviceCmd: ", data
+    datasession.AddSendCmd(data['data'],0)
+    
+def sessStartOrStop(datasession, data):
+    if 1 == data['state'] :
+        datasession.start()
+    else:
+        datasession.stop()
+    
+MsgDict = {
+           1 : getDeviceData,
+           2 : sendDeviceCmd,
+           3 : sessStartOrStop,
+           }

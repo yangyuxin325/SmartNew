@@ -1,0 +1,14 @@
+eclipse.preferences.version=1
+encoding//src/TestTimer.py=utf-8
+encoding//src/decorator_noparam.py=utf-8
+encoding//src/decorator_oneparam.py=utf-8
+encoding//src/logger_example.py=utf-8
+encoding//src/logger_multiple.py=utf-8
+encoding//src/quickstart_Bottle.py=utf-8
+encoding//src/simple_websocket.py=utf-8
+encoding//src/test.py=utf-8
+encoding//src/test_torndb.py=utf8
+encoding//src/tornado_sample.py=utf-8
+encoding//src/websocket.py=utf-8
+encoding/process_Client.py=utf8
+encoding/process_Listener.py=utf8

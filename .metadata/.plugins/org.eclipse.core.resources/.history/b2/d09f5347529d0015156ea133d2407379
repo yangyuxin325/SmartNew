@@ -1,0 +1,35 @@
+#coding=utf-8
+#!/usr/bin/env python
+'''
+Created on 2015年8月7日
+
+@author: sanhe
+'''
+import handlers
+from MasterPro.SmartServer import SmartServer
+from MasterPro.SmartServer import sock_sessionA
+from MasterPro.SmartServer import AsyncClient
+from Device import *
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+def handleConnect(sock):
+    if sock.addr[0] in SmartServer.ip_sessServer:
+        sessServer = SmartServer.ip_sessServer[sock.addr[0]]
+        if sessServer.Server_Type() == 'area' or sessServer.Server_Type() == 'node':
+            session = sock_sessionA(sessServer,sock,handlers.handleData,SmartServer.dataSession_map)
+            SmartServer.dataSession_map[id(session)] = session
+            if SmartServer()._server_type == 'area':
+                pass
+            elif SmartServer()._server_type == 'unit':
+                pass
+            elif SmartServer()._server_type == 'node':
+                pass
+        else:
+            client = AsyncClient(sock, handlers.handleData)
+            SmartServer.client_map[id(client)] = client
+            
+if __name__ == "__main__" :
+    SmartServer().Init('172.16.1.13', 9999, handleConnect)
+    SmartServer().Start()

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;Practices/src/mysql_connect&apos; to &apos;mysql_connect.py&apos;" description="Rename resource &apos;mysql_connect&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="src/mysql_connect" name="mysql_connect.py" stamp="1419930831140" updateReferences="true"/>
+</session>

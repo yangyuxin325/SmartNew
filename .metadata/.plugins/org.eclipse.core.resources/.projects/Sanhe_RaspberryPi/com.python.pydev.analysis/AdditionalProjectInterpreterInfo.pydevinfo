@@ -1,0 +1,81 @@
+-- VERSION_4
+-- START DISKCACHE
+/home/sanhe/workplace_python/.metadata/.plugins/org.eclipse.core.resources/.projects/Sanhe_RaspberryPi/com.python.pydev.analysis/v2_indexcache
+ReceiveSession|1425261454000|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/ReceiveSession.py
+Timer|1423213420000|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/Timer.py
+Singleton|1425260851000|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/Singleton.py
+Smartserver|1425261518000|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/Smartserver.py
+crc_check|1425260889000|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/crc_check.py
+RaspberryPi|1425261454000|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/RaspberryPi.py
+-- END DISKCACHE
+-- START DICTIONARY
+19
+3=ReceiveSession
+10=ReceiveSession.stop
+18=Timer.__do
+9=ReceiveSession.start
+15=ReceiveSession.sendNext
+2=RaspberryPi
+19=Timer.stop
+16=crc16
+13=TProcess
+6=Timer
+14=SmartServer
+4=Singleton
+17=Timer.__init__
+5=Smartserver
+7=ReceiveSession.__init__
+1=crc_check
+8=ReceiveSession.closeSerial
+11=ReceiveSession.openSerial
+12=SmartServer.__init__
+-- END DICTIONARY
+-- START TREE 1
+10
+cal|1|calcrc!10@
+crc|5|crcvalue!11@crclo!11@crchi!11@crc16!9@crcIndex!11@
+cre|1|createarray!10@
+len|1|lenarray!11@
+mai|1|main!18@
+rec|1|ReceiveSession!25@
+sin|1|Singleton!33@
+sma|1|SmartServer!41@
+tim|1|Timer!49@
+tpr|1|TProcess!17@
+-- END TREE
+-- START TREE 2
+33
+__a|4|__alive!7&27@__alive!8&27@__alive!9&27@__alive!10&27@
+__b|1|__baudrate!7&27@
+__c|5|__cmdList!7&27@__cycleList!7&27@__com!7&27@__com!11&27@__com!8&27@
+__d|2|__data_dict!12&43@__do!6&50@
+__f|1|__fun_sched!12&43@
+__i|8|__init__!13&18@__init__!14&42@__index!7&27@__index!15&27@__init__!3&26@__interval!7&27@__init__!16&10@__init__!6&50@
+__l|1|__lock!12&43@
+__n|1|__new__!4&34@
+__p|3|__processData!3&26@__port!7&27@__pList!12&43@
+__r|2|__recv_data!12&43@__receiveThread!3&26@
+__s|3|__starttime!7&27@__starttime!15&27@__session_dict!12&43@
+__t|3|__timer!7&27@__timer!15&27@__timer_interval!12&43@
+add|1|addProcessData!14&42@
+arg|1|args!17&51@
+auc|2|auchCRCHi!16&11@auchCRCLo!16&11@
+clo|1|closeSerial!3&26@
+cre|1|createcrc!16&10@
+dec|1|decorate_init!4&34@
+fn|1|fn!17&51@
+fnp|2|fnPlay!17&51@fnPlay!18&51@
+ins|1|insert_cmd!3&26@
+iso|1|isOpen!3&26@
+isp|2|isPlay!17&51@isPlay!19&51@
+las|1|lastDo!17&51@
+obj|2|objs!4&35@objs_locker!4&35@
+ope|1|openSerial!3&26@
+pop|1|popProcessData!14&42@
+pro|1|proc_func!14&42@
+run|2|run!6&50@run!13&18@
+sen|1|sendNext!3&26@
+sle|1|sleep!17&51@
+sta|2|start!14&42@start!3&26@
+sto|3|stop!6&50@stop!3&26@stopTimer!3&26@
+-- END TREE

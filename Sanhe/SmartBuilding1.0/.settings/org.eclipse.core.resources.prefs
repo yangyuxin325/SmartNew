@@ -1,0 +1,14 @@
+eclipse.preferences.version=1
+encoding//RassberryPi/Device/baseData.py=utf8
+encoding//RassberryPi/Device/co2.py=utf8
+encoding//RassberryPi/Device/crc_check.py=utf-8
+encoding//RassberryPi/Device/infrared.py=utf8
+encoding//RassberryPi/Device/mokuai.py=utf8
+encoding//RassberryPi/Device/plc.py=utf8
+encoding//RassberryPi/Device/sansu.py=utf8
+encoding//RassberryPi/Device/test.py=utf8
+encoding//RassberryPi/Device/triplecng.py=utf8
+encoding//RassberryPi/Device/voc.py=utf8
+encoding//RassberryPi/Device/wenkong.py=utf8
+encoding//RassberryPi/SmartServer.py=utf-8
+encoding//RassberryPi/com_session.py=utf-8

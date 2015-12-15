@@ -1,0 +1,14 @@
+MODULES_MANAGER_V2
+RassberryPi.CommonInterface|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/CommonInterface.py
+RassberryPi.DataProcess|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/DataProcess.py
+RassberryPi.Dev_CmdPack|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/Dev_CmdPack.py
+RassberryPi.Dev_DataParse|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/Dev_DataParse.py
+RassberryPi.Dev_Data_List|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/Dev_Data_List.py
+RassberryPi.Device|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/Device.py
+RassberryPi.RassberryPi|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/RassberryPi.py
+RassberryPi.SmartConfig|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/SmartConfig.py
+RassberryPi.SmartServer|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/SmartServer.py
+RassberryPi.__init__|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/__init__.py
+RassberryPi.checkError|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/checkError.py
+RassberryPi.com_session|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/com_session.py
+RassberryPi.crc_check|/home/sanhe/workplace_python/Sanhe/src/RassberryPi/crc_check.py

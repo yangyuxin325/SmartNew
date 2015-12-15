@@ -1,0 +1,36 @@
+#coding=utf-8
+#!/usr/bin/env python
+'''
+Created on 2015年12月4日
+
+@author: sanhe
+'''
+
+from SmartServer import AsyncClient
+from SmartServer import Connection
+
+class sock_sessionA(AsyncClient):
+    def __init__(self, para, sock=None, handleData=None, session_map=None):
+        self._para = para
+        if self._sock is not None:
+            AsyncClient.__init__(self, self._sock, handleData, session_map)
+        self._session_dict = {}
+        self._data_dict = {}
+        self._data_cache = {}
+        self._state = False
+        
+    def initData(self,name,ip):
+        if self._sock or self._type is 2:
+            self._state = True
+#         数据初始化，状态为断线的数据标记都为false
+    
+    def start(self):
+        pass
+    
+class sock_sessionB(Connection):
+    def __init__(self, Stype, handleData=None, session_map=None):
+        self._type = Stype   #type 4 本身区域 5 单元  6本身节点
+        self._session_dict = {}
+        self._data_dict = {}
+        self._data_cache = {}
+        self._disflag = False

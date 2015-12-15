@@ -1,0 +1,283 @@
+#coding=utf-8
+#!/usr/bin/env python
+'''
+Created on 2015年8月6日
+
+@author: sanhe
+'''
+
+from data_session import data_session
+import handlers
+import asyncore
+import socket
+import multiprocessing
+import time
+import threading
+
+
+
+class AsyncClient(asyncore.dispatcher):
+    def __init__(self, sock, handleData = None, client_map = None):
+        asyncore.dispatcher.__init__(self, sock)
+        self._handleData = handleData
+        self._client_map = client_map
+        self._start_tell = False
+        self.buffer = ''
+        self._lock = threading.Lock()
+        self._keepAlive = True
+        import struct
+        self._heartData = struct.pack('!4i', 0, 0, 0, 0)
+        self._keepTimer = threading.Timer(1,self.handle_timer)
+        self.StartHeartBeat()
+        self._type = 'client'
+        
+    def setType(self, type):
+        self._type = type
+    
+    def getType(self, type):
+        return self._type
+        
+    def StartHeartBeat(self):
+        if self._keepAlive :
+            print "StartHeartBeat : "
+            if self.connected:
+                self._keepTimer = threading.Timer(1,self.handle_timer)
+                self._keepTimer.start()
+        
+    def handle_timer(self):
+        self._keepAlive = True
+        self.send(self._heartData)
+        print "handle_timer : "
+        self.StartHeartBeat()
+        
+    def handle_read(self):
+#         print "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+        self._keepAlive = False
+        self._keepTimer.cancel()
+        if self._handleData is not None:
+            self._handleData(self)
+            
+    def SendData(self, data):
+        if self.connected is False :
+            return
+        self._keepAlive = False
+        self._keepTimer.cancel()
+        self.buffer = data
+        sent = self.send(self.buffer)
+        print "has Send : SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSss" , sent
+        if len(self.buffer) > sent:
+            time.sleep(0.1)
+            self.SendData(self.buffer[sent:])
+            print "SendData : ", self.buffer
+        self.StartHeartBeat()
+        
+        
+    def handle_close(self):
+        print self.addr , "is Closed !"
+        self.close()
+#         asyncore.dispatcher.handle_close(self)
+        if self._client_map is not None :
+            if id(self) in self._client_map :
+                del self._client_map[id(self)]
+#         self.StartHeartBeat()
+                
+    def tellFlag(self):
+        return self._start_tell
+                
+    def Start_tell(self):
+        self._start_tell = True
+            
+class AsyncServer(asyncore.dispatcher):
+    def __init__(self, host, port, handleConnect = None):
+        asyncore.dispatcher.__init__(self)
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.set_reuse_addr()
+        self.bind((host, port))
+        self._handleConnect = handleConnect
+          
+    def handle_accept(self):
+        asyncore.dispatcher.handle_accept(self)
+        pair = self.accept()
+        if pair is not None :
+            sock, addr = pair
+            print "%s connected" % repr(addr)
+            if self._handleConnect is not None :
+                self._handleConnect(sock)
+            
+    def run(self):
+        self.listen(5)
+    
+class MyThread(threading.Thread):
+    def __init__(self, session):
+        threading.Thread.__init__(self)
+        self._session = session
+        self._stop_thread = False
+        
+    def run(self):
+        while not self._stop_thread :
+#             print "start _doResult :", id(self._session)
+            task = self._session.getResultQueue()
+            if task :
+                if task['handle'] :
+                    task['handle'](task['data'])
+#                 for client in SmartServer().client_map.values():
+#                     client.send("Hello{}\n".format(id(self._session)))
+            time.sleep(0.01)
+            
+    def stop(self):
+        self._stop_thread = True
+            
+
+class SmartServer(object):
+    instance = None
+    channel_map = {
+                    u'空调外机通道' : '/dev/ttyUSB0',
+                    u"二层室内设备通道" : '/dev/ttyUSB1',
+                   }
+    dataSession_map = {}
+    process_map = {}
+    client_map = {}
+    Server = None
+    thread_map = {}
+    videoservers_map = {}
+    videoNameIP_Dict = {}
+    
+    def __new__(cls, *args, **kwarg):
+        if not cls.instance:
+            cls.instance = super(SmartServer, cls).__new__(cls, *args, **kwarg)
+        return cls.instance
+        
+    def Init(self, Host, Port, handleConnect, channel_map = None):
+        self._handleConnect = handleConnect
+        self.Server = AsyncServer(Host, Port, self._handleConnect)
+        if channel_map is not None :
+            self.__class__.channel_map = channel_map
+        self.videoserversInit()
+            
+    def videoserversInit(self):
+        pass
+    
+#     def addVideoSession(self, server_ip, client):
+#         if server_ip in self.videoservers_map:
+#             self.videoservers_map[server_ip].client = client
+#             return
+#         return
+    
+    def addVideoServer(self, server_ip, videoserver):
+        self.videoservers_map[server_ip] = videoserver
+        return True
+    
+    def addVideoNameIP(self,server_ip,server_name):
+        self.videoservers_map[server_ip].setName(server_name)
+        self.videoNameIP_Dict[server_name] = server_ip
+    
+    def delVideoServer(self, server_ip):
+        if server_ip in self.videoservers_map:
+            del self.videoservers_map[server_ip]
+            return True
+        return False
+    
+    def setVideoServerState(self, server_ip, state):
+        if server_ip in self.videoservers_map:
+            self.videoservers_map[server_ip].SetState(state)
+            
+    def getVideoServerState(self, server_ip):
+        if server_ip in self.videoservers_map:
+            return self.videoservers_map[server_ip].State()
+        return False
+    
+    def addVideoIPC(self, server_ip, ipc_name, ipc):
+        if server_ip in self.videoservers_map:
+            if self.videoservers_map[server_ip].addIPC(ipc_name, ipc) :
+                return True
+        return False
+    
+    def delVideoIPC(self, server_ip, ipc_name):
+        if server_ip in self.videoservers_map:
+            if self.videoservers_map[server_ip].delIPC(ipc_name):
+                return True
+        return False
+    
+    def setVideoIPCState(self, server_ip, ipc_name, state):
+        if server_ip in self.videoservers_map:
+            self.videoservers_map[server_ip].setIPCState(ipc_name, state)
+            
+    def getVideoIPCState(self, server_ip, ipc_name):
+        if server_ip in self.videoservers_map:
+            return self.videoservers_map[server_ip]
+        
+    def channelStart(self, channel):
+        try:
+            if channel in self.process_map :
+                print channel , self.process_map[channel].is_alive()
+                if not self.dataSession_map[channel].State():
+                    del self.process_map[channel]
+                else :
+                    self.putTask(channel,{'MsgType' : 3, 'data' : {'state' : 0}})
+                    while self.dataSession_map[channel].State():
+                        print channel, "is alive"
+                        time.sleep(3)
+                    del self.process_map[channel]
+                if channel in self.thread_map :
+                    if self.thread_map[channel].is_alive:
+                        self.thread_map[channel].stop()
+                    del self.thread_map[channel]
+                    
+        except Exception as e:
+            print "channelStart Error : " , e
+        if channel in self.channel_map :
+            session = data_session(channel, self.channel_map[channel], 9600, 0.5, 
+                                                    lambda self, data : handlers.MsgDict[data['MsgType']](self,data))
+            self.dataSession_map[channel] = session
+            p = multiprocessing.Process(target=session)
+            self.process_map[channel] = p
+            p.start()
+            th = MyThread(session)
+            self.thread_map[channel] = th
+            th.start()
+            
+    def startOldSession(self, channel):
+        print "startOldSession : ", channel
+        if channel in self.dataSession_map:
+            del self.thread_map[channel]
+            del self.process_map[channel]
+            session = self.dataSession_map[channel]
+            p = multiprocessing.Process(target=session)
+            self.process_map[channel] = p
+            p.start()
+            th = MyThread(session)
+            self.thread_map[channel] = th
+            th.start()
+            return True
+        return False
+            
+            
+    def Start(self):
+        self.Server.run()
+#         asyncore.loop()
+        threading.Thread(target=asyncore.loop).start()
+#         multiprocessing.Process(target=asyncore.loop).start()
+        for channel in self.channel_map.keys():
+            self.channelStart(channel)
+            
+    def putTask(self, channel, data):
+        if channel in self.dataSession_map:
+            if self.dataSession_map[channel].State():
+                self.dataSession_map[channel].putTaskQueue(data)
+            return True
+        return False
+            
+    def _doResult(self,session):
+        while True :
+            try :
+                print "start _doResult :", id(session)
+                task = session.getResultQueue()
+                if task :
+                    try :
+                        if task['handle'] : 
+                            task['handle'](task['data'])
+                    except Exception as e:
+                        print "_doResult got Error: ", e
+                time.sleep(0.1)
+            except Exception as e :
+                print "_doResult : ", e

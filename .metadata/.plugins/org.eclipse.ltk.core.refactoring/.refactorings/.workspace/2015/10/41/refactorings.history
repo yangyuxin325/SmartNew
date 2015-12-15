@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Delete resource &apos;SmartHome1.0&apos;" deleteContents="true" description="Delete resource &apos;SmartHome1.0&apos;" element1="/SmartHome1.0" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1444377235929"/>&#x0A;<refactoring comment="Delete 7 resources" deleteContents="true" description="Delete 7 resources" element1="/SmartHome2.0" element2="/SmartHome3.0" element3="/SmartHome4.0" element4="/SmartHome5.0" element5="/SmartHome6.0" element6="/SmartHome7.0" element7="/SmartHome8.0" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="7" stamp="1444377252409"/>
+</session>

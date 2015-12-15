@@ -1,0 +1,182 @@
+#coding=utf-8
+#!/usr/bin/env python
+'''
+Created on 2015年7月20日
+
+@author: sanhe
+'''
+
+from serial import Serial
+import time
+from greenlet import greenlet
+from time import sleep
+from Device.crc_check import crc16
+
+def Sum_Right(array):
+    check_sum = 0
+    for i in range(len(array) -1):
+        check_sum += ord(array[i])
+        check_sum &= 0xff
+    if check_sum == ord(array[i+1]):
+        return True
+    else:
+        return False
+    
+class com_session():
+    def __init__(self, port , baudrate, device_set, interval, taskQueue):
+        self._port = port
+        self._baudrate = baudrate
+        self._device_set = device_set
+        self._interval = interval
+        self._cmdList = []
+        self._cmdAdd = []
+        self._errorList = []
+        self._errorStartTime = time.time()
+        self._taskQueue = taskQueue
+        import copy
+        self._cycleList = copy.deepcopy(self._device_set.getCmdSet())
+        self._cycleList.append({"id" : 0, "cmd" : "", "dev_id" : -1})
+      
+    def getDevices(self):
+        return self._devices
+    
+    def AddSendCmd(self, cmd, delay_second):
+        self._cmdList.append({"cmd" : cmd, "delay_second" : delay_second, "addTime" : time.time()})
+        
+    def openSerial(self):
+        try:
+            self._com = Serial(self._port,self._baudrate)
+        except:
+            self._com = None
+            print 'Open %s Serial fail' % self.__port
+            
+    def isOpen(self):
+        return self._com.isOpen()
+    
+    def __call__(self):
+        self.openSerial()
+        if self.isOpen() :
+            self._alive = True
+            self._sendGR = greenlet(self._SendData)
+            self._recvGR = greenlet(self._receiveData)
+            self._sendGR.switch()
+            
+    def stop(self):
+        self._alive = False
+        
+    
+    def closeSerial(self):
+        if(type(self._com) != type(None)):
+            self._alive = False
+            self._com = None
+            return True
+        return False
+    
+    def _AddTask(self):
+        q = self._taskQueue["task"]
+        lock =  self._taskQueue["lock"]
+        if q.empty() is False :
+            lock.acquire()
+            task = q.get_nowait()
+            lock.release()
+            self.AddSendCmd(task["cmd"],task["delay_second"])
+            
+    def _NoSendData(self, cmd):
+        if cmd is not None and cmd["dev_id"] == -1 :
+            print self._device_set.getSessionName(),"Period is ", time.time() - self._startTime, "S ."
+            self._startTime = time.time()
+            self._cycleList.append(self._cmd)
+            if len(self._cycleList) == 1:
+                if self._cmdAddFlag is False:
+                    time.sleep(10)
+                else :
+                    time.sleep(1)
+                if len(self._errorList) > 0:
+                    if time.time() - self._errorStartTime > 60 :
+                        self._cycleList = self._cycleList + self._errorList
+                        self._errorList = []
+                        self._errorStartTime = time.time()
+                if self._cmdAddFlag:
+                    self._cmdList = self._cmdList + self._cmdAdd
+                    self._cmdAdd = []
+                    self._cmdAddFlag = False
+                
+    def _SendData(self):
+        self._cmd = None
+        self._startTime = time.time()
+        self._cmdAddFlag =  False
+        while self._alive :
+            self._AddTask()
+            cmd = None
+            data = ""
+            if len(self._cmdList) > 0:
+                item = self._cmdList.pop(0)
+                if time.time() - item["addTime"] >= item["delay_second"] :
+                    data = item["cmd"]
+                    print "cmdList : " , data
+                else :
+                    self._cmdAdd.append(item)
+                if len(self._cmdList) == 0 and len(self._cmdAdd) > 0 :
+                    self._cmdAddFlag = True
+            else :
+                cmd = self._cycleList.pop(0)
+                data = cmd["cmd"]
+            self._cmd = cmd
+            if data != "" :
+                self._com.write(data.decode('hex'))
+                self._sendTime = time.time()
+                self._recvGR.switch()
+            else :
+                
+            
+    def _dataProcess(self,data):
+        strdata = data.encode("hex")
+        listdata = []
+        for i in range(0,len(strdata),2):
+            listdata.append(int(strdata[i:i+2],16))
+        print listdata
+        dev_id = 0
+        if (ord(data[0]) == 0x99 and Sum_Right(data)) or crc16().calcrc(listdata):
+            if (ord(data[0]) == 0x99) :
+                dev_id = ord(data[1])
+            else:
+                dev_id = ord(data[0])
+            self._device_set.ParseData(dev_id,listdata)
+            if self._cmd is not None and self._cmd['dev_id'] == dev_id :
+                self._cycleList.append(self._cmd)
+                if self._device_set.DisConnected(dev_id) :
+                    self._device_set.setDisConnect(dev_id,0)
+                    self._sendGR.switch()
+                    
+    def _DisConnectProcess(self):
+        if self._cmd is not None:
+            self._device_set.setDisConnect(self._cmd["dev_id"],1)
+            if self._device_set.DisConnected(self._cmd["dev_id"]) is False:
+                self._errorList.append(self._cmd)
+                print "断线指令 ： ",self._device_set.getSessionName(),self._cmd
+            else :
+                self._cycleList.append(self._cmd)
+        self._sendGR.switch()
+                    
+    def _receiveData(self):
+        data = ''
+        readFlag = False
+        self._read_interval = 0.1
+        while self._alive :
+            try :
+                if readFlag is False:
+                    time.sleep(self._read_interval)
+                n = self._com.inWaiting()
+                if n :
+                    self._recvTime = time.time()
+                    data = self._com.read(n)
+                    self._dataProcess(data)
+                else :
+                    if readFlag is False :
+                        sleep(self._interval-self._read_interval)
+                        readFlag = True
+                    else :
+                        readFlag = False
+                        self._DisConnectProcess()
+            except Exception as e:
+                print '_receiveData got an error : %s' % e    

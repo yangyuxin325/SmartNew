@@ -1,0 +1,194 @@
+#coding=utf-8
+#!/usr/bin/env python
+'''
+Created on 2015年3月2日
+
+@author: sanhe
+'''
+import time
+from serial import Serial
+from threading import Thread
+from threading import Timer
+import threading
+from Device.crc_check import crc16
+from SmartServer import SmartServer
+import copy
+import logging
+from deviceSet import deviceSet
+
+def Sum_Right(array):
+    check_sum = 0
+    for i in range(len(array) -1):
+        check_sum += ord(array[i])
+        check_sum &= 0xff
+    if check_sum == ord(array[i+1]):
+        return True
+    else:
+        return False
+
+logging.basicConfig(level = logging.DEBUG,
+                    format = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+                    datefmt = '%d %b %Y %H:%M:%S',
+                    filename = 'app_device_offline.log',
+                    filemode = 'w'
+                    )
+
+class Session(object):
+    '''
+    classdocs
+    '''
+    
+    def __init__(self, port, baudrate, cycleList, interval, devices):
+        '''
+        Constructor
+        '''
+        self._devices = devices
+        self.__port = port              #串口名
+        self.__baudrate = baudrate      #波特率
+        self.__cmdList = []             #指令队列
+        self.__cycleList = copy.deepcopy(cycleList)    #巡检队列
+        self.__cycleList.append({"id" : 0, "cmd" : "", "nbcount" : 0})  #巡检队列加头
+        self.__cyclelist_mutex = threading.Lock()         #循环队列锁
+        self.__cmdlist_mutex = threading.Lock()           #指令队列锁
+        self.__errorList = []                   #掉线队列
+        self.__CycleCmd = None                  #当前发送巡检指令
+        self.__errorTimer = None                #掉线定时
+        self.__etimerFlag = False               #启动掉线定时标记
+        self.__timefirst = time.time()          #发送巡检指令开始时间
+        self.__interval = interval              #指令返回最迟时间间隔
+        self.__timer = None                     #巡检定时
+        self.__starttime = time.time()          #指令发送时间点，计算指令返回时间差
+        self.__receiveFlag = False              #开始接收数据标记，建立连接数时接收错误数据
+        
+    def handleErrorTimer(self):
+        self.__cyclelist_mutex.acquire()
+#         for item in self.__cycleList:
+#             print "Error List : ", item
+        self.__cycleList = self.__cycleList + self.__errorList
+        self.__errorList = []
+        self.__cyclelist_mutex.release()
+        self.__etimerFlag = False
+        
+    def AddSendCmd(self,cmd):
+        self.__cmdlist_mutex.acquire()
+        self.__cmdList.append(cmd)
+        self.__cmdlist_mutex.release()
+        
+    def handleTimer(self):
+        if self.__CycleCmd is not None:
+            self.__CycleCmd["nbcount"] += 1
+            if self.__CycleCmd["nbcount"] > 10:
+                self.__errorList.append(self.__CycleCmd)
+                print "断线指令： ", self.__port, self.__CycleCmd
+                logging.info("断线指令: Port : %s  Dev_CMD :  %s" % (self.__port,str(self.__CycleCmd)))
+                if self.__etimerFlag == False:
+                    self.__etimerFlag = True
+                    self.__errorTimer = Timer(60,self.handleErrorTimer)
+                    self.__errorTimer.start()
+            else:
+                self.__cycleList.append(self.__CycleCmd)
+        self.sendNext()
+        
+    def sendNext(self):
+#         time.sleep(0.1)
+        self.__timer = Timer(self.__interval,self.handleTimer)
+        cmd = None
+        if len(self.__cmdList) > 0 :
+            self.__CycleCmd = None
+            self.__cmdlist_mutex.acquire()
+            cmd = self.__cmdList.pop(0)
+            self.__cmdlist_mutex.release()
+        elif len(self.__cycleList) > 0 :
+            self.__cyclelist_mutex.acquire()
+            cmd = self.__cycleList.pop(0)
+            self.__CycleCmd = cmd
+            self.__cyclelist_mutex.release()
+        if cmd is not None :
+            if cmd["id"] == 0 :
+                print self.__port, "one period is ",time.time() - self.__timefirst, "S"
+                self.__timefirst = time.time()
+                self.__cyclelist_mutex.acquire()
+                self.__cycleList.append(cmd)
+                self.__cyclelist_mutex.release()
+                if len(self.__cycleList) == 1:
+                    time.sleep(10)
+                    print self.__cycleList
+                self.sendNext()
+            else:
+                self.__com.write(cmd["cmd"].decode("hex"))
+                if not self.__receiveFlag:
+                    self.__receiveFlag = True
+#                 print 'SendNext in Serial %s : %s' % (self.__port,cmd)
+                self.__starttime = time.time()
+                self.__timer.setDaemon(True)
+                self.__timer.start()
+        return cmd
+    
+    def openSerial(self):
+        try:
+            self.__com = Serial(self.__port,self.__baudrate)
+        except:
+            self.__com = None
+            print 'Open %s Serial fail' % self.__port
+            
+    def isOpen(self):
+        return self.__com.isOpen()
+    
+    def __call__(self):
+        self.openSerial()
+        if  self.isOpen():
+            self.__alive = True
+            th = Thread(target = self.__receiveData)
+            th.start()
+            self.sendNext()
+    
+    def stop(self):
+        self.__alive = False
+        
+    def closeSerial(self):
+        if(type(self.__com) != type(None)):
+            self.__alive = False
+            if(type(self.__timer) != type(None)):
+                self.__timer.cancel()
+            self.__com.close()
+            self.__com = None
+            return True
+        return False
+    
+    def __receiveData(self):
+        data = ''
+        while self.__alive:
+            try:
+                time.sleep(0.1)
+                n = self.__com.inWaiting()
+                if n:
+                    if self.__receiveFlag:
+#                         data = data + self.__com.read(n)
+                        data = self.__com.read(n)
+                        strdata = data.encode("hex")
+                        listdata = []
+                        for i in range(0,len(strdata),2):
+                            listdata.append(int(strdata[i:i+2],16))
+                            
+                        
+#                         if (ord(data[0]) == 0x99) :
+#                             print self.__port ,"Received Right Data 0x99: " , listdata , "."
+                        if (ord(data[0]) == 0x99 and Sum_Right(data)) or crc16().calcrc(listdata):
+                            if (ord(data[0]) == 0x99 and Sum_Right(data))):
+                                self._devices.ParseData(ord(data[1],data)
+                            else:
+                                self._devices.ParseData(ord(data[0],data)
+                                                                       
+                            if time.time() - self.__starttime < 0.5 :
+                                self.__timer.cancel()
+                                self.__cyclelist_mutex.acquire()
+                                if self.__CycleCmd["nbcount"] > 9:
+                                    self.__CycleCmd["nbcount"] = 0
+                                self.__cycleList.append(self.__CycleCmd)
+                                self.__cyclelist_mutex.release()
+                                self.sendNext()
+                        else:
+                            print "Received Error Data : ",listdata, "."
+                            
+            except Exception as e:
+                print '__receiveData got an error : %s' % e

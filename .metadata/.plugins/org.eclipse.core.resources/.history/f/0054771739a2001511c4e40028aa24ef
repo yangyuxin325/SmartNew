@@ -1,0 +1,9 @@
+eclipse.preferences.version=1
+encoding//Device/PFP6G.py=utf-8
+encoding//Device/aux_log.py=utf-8
+encoding//Device/baseData.py=utf8
+encoding//Device/co2.py=utf8
+encoding//Device/crc_check.py=utf-8
+encoding//Device/device.py=utf-8
+encoding//MasterPro/DB_Para.py=utf-8
+encoding//MasterPro/data_session.py=utf-8

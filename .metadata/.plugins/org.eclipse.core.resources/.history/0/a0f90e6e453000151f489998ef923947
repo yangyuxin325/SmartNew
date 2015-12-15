@@ -1,0 +1,52 @@
+#coding=utf-8
+#!/usr/bin/env python
+'''
+Created on 2015年7月20日
+
+@author: sanhe
+'''
+import multiprocessing
+
+q = multiprocessing.Queue()
+l = multiprocessing.Lock()
+
+def StartSession() :
+    from deviceSet import deviceSet
+    from com_session import com_session
+    import threading
+    devices = deviceSet("空调外机通道")
+    session = com_session('/dev/ttyUSB0',9600,devices,0.5,{"task" : q, "lock" : l})
+    th1 = threading.Thread(target=session)
+    th = threading.Thread(target=session.AddSendCmd,args=("010400000008f1cc",100))
+    th1.start()
+    th.start()
+    th1.join()
+    
+def addCMD():
+    import random
+    cmd = "010400000008f1cc"
+    import time
+    while True:
+        delay_second = random.uniform(1,10)
+        l.acquire()
+        q.put_nowait({"cmd" : cmd , "delay_second" : delay_second})
+        l.release()
+        time.sleep(3)
+
+p = multiprocessing.Process(target= addCMD)
+
+StartSession()
+p.start()
+
+
+
+
+
+
+# try :
+#     p = multiprocessing.Process(target=StartSession)
+#     p.start()
+# except Exception as e:
+#     print e
+    
+

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;SmartHome1.1&apos; to &apos;SmartHome1.2&apos;" description="Rename resource &apos;SmartHome1.1&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="/SmartHome1.1" name="SmartHome1.2" stamp="1442554480744" updateReferences="true"/>
+</session>

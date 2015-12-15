@@ -1,0 +1,7 @@
+MODULES_MANAGER_V2
+RaspberryPi|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/RaspberryPi.py
+ReceiveSession|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/ReceiveSession.py
+Singleton|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/Singleton.py
+Smartserver|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/Smartserver.py
+Timer|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/Timer.py
+crc_check|/home/sanhe/workplace_python/Sanhe_RaspberryPi/src/crc_check.py
